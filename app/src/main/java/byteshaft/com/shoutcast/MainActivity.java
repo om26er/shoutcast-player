@@ -16,15 +16,24 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         mPlaybackButton = (Button) findViewById(R.id.button_toggle_playback);
         mPlaybackButton.setOnClickListener(this);
+        startService(new Intent(getApplicationContext(), StreamService.class));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (StreamService.getInstance() != null) {
-            mPlaybackButton.setText("stop");
+        if (StreamService.getInstance() != null && StreamService.getInstance().mMediaPlayer.isPlaying()) {
+            mPlaybackButton.setText("Pause");
         } else {
-            mPlaybackButton.setText("play");
+            mPlaybackButton.setText("Play");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (StreamService.isRunning()  && !StreamService.getInstance().mMediaPlayer.isPlaying()) {
+            StreamService.getInstance().stopStream();
         }
     }
 
@@ -32,12 +41,12 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button_toggle_playback:
-                if (StreamService.getInstance() != null) {
-                    stopService(new Intent(getApplicationContext(), StreamService.class));
-                    mPlaybackButton.setText("Play");
+                if (StreamService.isRunning()  && !StreamService.getInstance().mMediaPlayer.isPlaying()) {
+                    StreamService.getInstance().startStream();
+                    mPlaybackButton.setText("Pause");
                 } else {
-                    startService(new Intent(getApplicationContext(), StreamService.class));
-                    mPlaybackButton.setText("stop");
+                    StreamService.getInstance().pauseStream();
+                    mPlaybackButton.setText("Start");
                 }
         }
     }

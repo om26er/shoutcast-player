@@ -10,11 +10,17 @@ import wseemann.media.FFmpegMediaPlayer;
 
 public class StreamService extends Service implements FFmpegMediaPlayer.OnPreparedListener {
 
-    private FFmpegMediaPlayer mMediaPlayer;
+    FFmpegMediaPlayer mMediaPlayer;
     private static StreamService sService;
+    private boolean mIsPrepared;
+    private boolean mPreparing;
 
     static StreamService getInstance() {
         return sService;
+    }
+
+    static boolean isRunning() {
+        return sService != null;
     }
 
     @Override
@@ -23,34 +29,49 @@ public class StreamService extends Service implements FFmpegMediaPlayer.OnPrepar
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public void onCreate() {
+        super.onCreate();
         sService = this;
-        start();
-        return START_NOT_STICKY;
-    }
-
-    private void start() {
         mMediaPlayer = new FFmpegMediaPlayer();
         mMediaPlayer.setOnPreparedListener(this);
         String url = getString(R.string.shoutcast_url);
         try {
             mMediaPlayer.setDataSource(url);
-            mMediaPlayer.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    void startStream() {
+        if (mIsPrepared) {
+            mMediaPlayer.start();
+        } else if (!mPreparing){
+            mMediaPlayer.prepareAsync();
+            mPreparing = true;
+        }
+    }
+
+    void pauseStream() {
+        mMediaPlayer.pause();
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mMediaPlayer.stop();
-        mMediaPlayer.release();
-        sService = null;
+        stopStream();
+    }
+
+    void stopStream() {
+        if (mMediaPlayer.isPlaying()) {
+            mMediaPlayer.stop();
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
     }
 
     @Override
     public void onPrepared(FFmpegMediaPlayer fFmpegMediaPlayer) {
+        mIsPrepared = true;
         mMediaPlayer.start();
     }
 }
